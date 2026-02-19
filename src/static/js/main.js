@@ -29,6 +29,7 @@ const screenContainer = document.getElementById('screen-container');
 const screenPreview = document.getElementById('screen-preview');
 const inputAudioVisualizer = document.getElementById('input-audio-visualizer');
 const apiKeyInput = document.getElementById('api-key');
+const apiModelSelect = document.getElementById('model-select');
 const voiceSelect = document.getElementById('voice-select');
 const languageSelect = document.getElementById('language-select');
 const fpsInput = document.getElementById('fps-input');
@@ -45,8 +46,11 @@ const savedVoice = localStorage.getItem('gemini_voice');
 const savedLanguage = localStorage.getItem('gemini_language');
 const savedFPS = localStorage.getItem('video_fps');
 const savedSystemInstruction = localStorage.getItem('system_instruction');
+const savedModel = localStorage.getItem('gemini_model');
 
-
+if (savedModel) {
+    apiModelSelect.value = savedModel;
+}
 if (savedApiKey) {
     apiKeyInput.value = savedApiKey;
 }
@@ -261,15 +265,20 @@ async function connectToWebsocket() {
         logMessage('Please input API Key', 'system');
         return;
     }
+    if (!apiModelSelect.value) {
+        logMessage('Please select a model', 'system');
+        return;
+    }
 
     // Save values to localStorage
     localStorage.setItem('gemini_api_key', apiKeyInput.value);
     localStorage.setItem('gemini_voice', voiceSelect.value);
+    localStorage.setItem('gemini_model', apiModelSelect.value);    
     localStorage.setItem('gemini_language', languageSelect.value);
     localStorage.setItem('system_instruction', systemInstructionInput.value);
 
     const config = {
-        model: CONFIG.API.MODEL_NAME,
+        model: apiModelSelect.value || CONFIG.API.MODEL_NAME,
         generationConfig: {
             responseModalities: responseTypeSelect.value,
             speechConfig: {
@@ -290,6 +299,7 @@ async function connectToWebsocket() {
     };  
 
     try {
+        console.log('Connecting to Gemini Multimodal Live API...using model: ' + config.model);
         await client.connect(config,apiKeyInput.value);
         isConnected = true;
         await resumeAudioContext();

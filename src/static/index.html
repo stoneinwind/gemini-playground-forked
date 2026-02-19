@@ -17,6 +17,13 @@
     <div id="app">
         <div class="settings">
             <input type="password" id="api-key" placeholder="Please Input Gemini API Key" />
+            <select id="model-select">
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                <option value="gemini-2.0-flash-exp-image-generation">Gemini 2.0 flash exp image generation</option>
+                <option value="gemini-2.5-flash-native-audio-latest">Gemini 2.5 flash native audio</option>
+                <option value="gemini-2.5-flash-native-audio-preview-09-2025">Gemini 2.5 flash native audio preview 2025</option>
+            </select>
+            
             <button id="config-toggle" class="material-symbols-outlined">settings</button>
         </div>
         <div id="config-container" class="hidden-mobile">
