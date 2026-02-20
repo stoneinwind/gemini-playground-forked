@@ -2,6 +2,7 @@
     --primary-color: #4285f4;
     --secondary-color: #34a853;
     --danger-color: #ea4335;
+    --warning-color: #fbbc04;
     --background-color: #f0f0f0;
     --surface-color: #fff;
     --border-color: #ccc;
@@ -13,6 +14,46 @@
     --spacing-md: 16px;
     --spacing-lg: 24px;
     --primary-color-rgb: 66, 133, 244;
+}
+
+/* API Key Notice Styles */
+.api-key-notice {
+    background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+    border: 2px solid var(--warning-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    box-shadow: 0 4px 12px rgba(251, 188, 4, 0.2);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 4px 12px rgba(251, 188, 4, 0.2); }
+    50% { box-shadow: 0 6px 16px rgba(251, 188, 4, 0.4); }
+    100% { box-shadow: 0 4px 12px rgba(251, 188, 4, 0.2); }
+}
+
+.notice-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.notice-icon {
+    font-size: 24px;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.notice-text {
+    color: #856404;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
 body {

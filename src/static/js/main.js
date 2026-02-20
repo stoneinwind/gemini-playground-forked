@@ -30,6 +30,7 @@ const screenPreview = document.getElementById('screen-preview');
 const inputAudioVisualizer = document.getElementById('input-audio-visualizer');
 const apiKeyInput = document.getElementById('api-key');
 const apiModelSelect = document.getElementById('model-select');
+const modelSelectContainer = document.querySelector('.settings select#model-select').parentElement;
 const voiceSelect = document.getElementById('voice-select');
 const languageSelect = document.getElementById('language-select');
 const fpsInput = document.getElementById('fps-input');
@@ -48,11 +49,13 @@ const savedFPS = localStorage.getItem('video_fps');
 const savedSystemInstruction = localStorage.getItem('system_instruction');
 const savedModel = localStorage.getItem('gemini_model');
 
-if (savedModel) {
-    apiModelSelect.value = savedModel;
-}
+// If saved API key exists, automatically fetch models
 if (savedApiKey) {
     apiKeyInput.value = savedApiKey;
+    // Automatically fetch models for saved API key
+    setTimeout(() => {
+        handleApiKeyChange();
+    }, 100);
 }
 if (savedVoice) {
     voiceSelect.value = savedVoice;
@@ -102,6 +105,121 @@ let isUsingTool = false;
 
 // Multimodal Client
 const client = new MultimodalLiveClient();
+
+/**
+ * Logs a message to the UI.
+ * @param {string} message - The message to log.
+ * @param {string} [type='system'] - The type of the message (system, user, ai).
+ */
+/**
+ * Fetches available models from Gemini API based on the provided API key.
+ * @param {string} apiKey - The Gemini API key
+ * @returns {Promise<Array>} Array of model objects that support bidiGenerateContent
+ */
+async function fetchAvailableModels(apiKey) {
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Filter models that support bidiGenerateContent
+        const supportedModels = data.models.filter(model => 
+            model.supportedGenerationMethods && 
+            model.supportedGenerationMethods.includes('bidiGenerateContent')
+        );
+        
+        return supportedModels.map(model => ({
+            name: model.name.replace('models/', ''),
+            displayName: model.displayName || model.name.replace('models/', ''),
+            description: model.description || ''
+        }));
+        
+    } catch (error) {
+        Logger.error('Error fetching models:', error);
+        throw error;
+    }
+}
+
+/**
+ * Updates the model selection dropdown with available models.
+ * @param {Array} models - Array of model objects
+ */
+function updateModelSelection(models) {
+    // Clear existing options except the first placeholder
+    while (apiModelSelect.options.length > 0) {
+        apiModelSelect.remove(0);
+    }
+    
+    // Add new model options
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.name;
+        option.textContent = model.displayName;
+        option.title = model.description;
+        apiModelSelect.appendChild(option);
+    });
+    
+    // Select first model by default
+    if (models.length > 0) {
+        apiModelSelect.selectedIndex = 0;
+    }
+}
+
+/**
+ * Handles API key input changes to fetch available models.
+ */
+async function handleApiKeyChange() {
+    const apiKey = apiKeyInput.value.trim();
+    
+    // Clear existing model options immediately when API key changes
+    while (apiModelSelect.options.length > 0) {
+        apiModelSelect.remove(0);
+    }
+    
+    if (apiKey.length === 0) {
+        // Reset to default models if API key is cleared
+        resetModelSelection();
+        return;
+    }
+    
+    try {
+        logMessage('Fetching available models...', 'system');
+        const models = await fetchAvailableModels(apiKey);
+        
+        if (models.length > 0) {
+            updateModelSelection(models);
+            logMessage(`Found ${models.length} available models`, 'system'); 
+        } else {
+            logMessage('No models with bidiGenerateContent support found', 'system');
+            resetModelSelection();
+        }
+    } catch (error) {
+        logMessage(`Error fetching models: ${error.message}`, 'system');
+        resetModelSelection();
+    }
+}
+
+/**
+ * Resets model selection to empty state.
+ */
+function resetModelSelection() {
+    // Clear existing options
+    while (apiModelSelect.options.length > 0) {
+        apiModelSelect.remove(0);
+    }
+    
+    // Add placeholder option
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Please enter API key to load models';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    apiModelSelect.appendChild(placeholder);
+}
 
 /**
  * Logs a message to the UI.
@@ -278,7 +396,7 @@ async function connectToWebsocket() {
     localStorage.setItem('system_instruction', systemInstructionInput.value);
 
     const config = {
-        model: apiModelSelect.value || CONFIG.API.MODEL_NAME,
+        model: `models/${apiModelSelect.value}` || CONFIG.API.MODEL_NAME,
         generationConfig: {
             responseModalities: responseTypeSelect.value,
             speechConfig: {
@@ -372,6 +490,8 @@ function handleSendMessage() {
 }
 
 // Event Listeners
+apiKeyInput.addEventListener('input', handleApiKeyChange);
+
 client.on('open', () => {
     logMessage('WebSocket connection opened', 'system');
 });
