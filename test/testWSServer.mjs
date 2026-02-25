@@ -5,11 +5,23 @@ import recorder from 'node-record-lpcm16'; // 用来在node中启动录音设备
 
 // -- 处理参数
 const WORKER_URL = "gemini-playground-forked.stoneinwind.deno.net"; // 你的 Worker 域名（不带 https://）
-const API_KEY = process.argv[2]; // 第一个自定义参数就是密钥
-if (!API_KEY) {
-    console.error("❌ 请提供 API_KEY: node your_script.js AIza...");
+
+// 检查命令行参数
+if (process.argv.length < 3) {
+    console.log("📝 使用说明:");
+    console.log("  node testWSServer.mjs <API_KEY> [voice]");
+    console.log("");
+    console.log("参数:");
+    console.log("  API_KEY  (必需) - Google Gemini API 密钥");
+    console.log("  voice    (可选) - 启用语音模式");
+    console.log("");
+    console.log("示例:");
+    console.log("  node testWSServer.mjs AIzaSy...                 # 文本模式");
+    console.log("  node testWSServer.mjs AIzaSy... voice         # 语音模式");
     process.exit(1);
 }
+
+const API_KEY = process.argv[2]; // 第一个自定义参数就是密钥
 const IS_VOICE_MODE = process.argv[3] === 'voice'; // 检查是否有 voice 参数
 const MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"; // 确保 Worker 支持此路径
 
