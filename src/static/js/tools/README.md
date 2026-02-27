@@ -78,9 +78,9 @@ Each tool is defined as a JavaScript class with two main methods:
 
 4. **Use your tool** in the conversation with the Gemini API. When the model determines that your tool should be used, it will send a function call request, and the `ToolManager` will execute the corresponding `execute` method of your tool.
 
-## Example: `google-search.js`
+## Example: `tavily-search.js`
 
-The `google-search.js` file provides a placeholder for integrating with the Google Search API. In the current implementation, it simply logs the search query and returns `null` because the actual search functionality is handled server-side by the Gemini API.
+The `tavily-search.js` file provides a placeholder for integrating with the Google Search API. In the current implementation, it simply logs the search query and returns `null` because the actual search functionality is handled server-side by the Gemini API.
 
 ## Example: `weather-tool.js`
 

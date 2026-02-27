@@ -1,6 +1,6 @@
 import { Logger } from '../utils/logger.js';
 import { ApplicationError, ErrorCodes } from '../utils/error-boundary.js';
-import { GoogleSearchTool } from './google-search.js';
+import { TavilySearchTool } from './tavily-search.js';
 import { WeatherTool } from './weather-tool.js';
 
 /**
@@ -17,10 +17,10 @@ export class ToolManager {
     }
 
     /**
-     * Registers the default tools: GoogleSearchTool and WeatherTool.
+     * Registers the default tools: Tavily and WeatherTool.
      */
     registerDefaultTools() {
-        this.registerTool('googleSearch', new GoogleSearchTool());
+        this.registerTool('TavilySearchTool', new TavilySearchTool());
         this.registerTool('weather', new WeatherTool());
     }
 
@@ -57,6 +57,15 @@ export class ToolManager {
                     allDeclarations.push({
                         functionDeclarations: tool.getDeclaration()
                     });
+                } else if (name === 'TavilySearchTool') {
+                    // For TavilySearchTool, we need to handle the declaration differently
+                    // It returns an array of function declarations
+                    const declarations = tool.getDeclaration();
+                    if (Array.isArray(declarations)) {
+                        allDeclarations.push({
+                            functionDeclarations: declarations
+                        });
+                    }
                 } else {
                     allDeclarations.push({ [name]: tool.getDeclaration() });
                 }
@@ -84,7 +93,10 @@ export class ToolManager {
         let tool;
         if (name === 'get_weather_on_date') {
             tool = this.tools.get('weather');
+        } else if (name === 'tavily_search') {
+            tool = this.tools.get('TavilySearchTool');
         } else {
+            Logger.info("no match for current tools. Try to match with: ", { name })
             tool = this.tools.get(name);
         }
 

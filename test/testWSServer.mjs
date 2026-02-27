@@ -93,6 +93,16 @@ function startPlayer() {
     return p;
 }
 
+let restarting = false;
+// 重启player防抖（不然有可能短时间多个start/kill）
+function restartPlayer() {
+  if (restarting) return;
+  restarting = true;
+  currentPlayer.kill();
+  currentPlayer = startPlayer();
+  setTimeout(() => restarting = false, 50);
+}
+
 // 本地测试ffplay的方法
 function testPlayer() {
     console.log("正在测试播放器... 你应该能听到 2 秒钟的鸣叫声");
@@ -213,7 +223,7 @@ socket.onmessage = async (event) => {
                 if (part.text) {
                     // 如果是文字回复，则打印并使用 \r 清除当前行，防止内容与 "➤ 你:" 重叠
                     process.stdout.write(`\r🤖: ${part.text}\n`);
-                    rl.prompt(true); // 重新绘制提示符
+                    //rl.prompt(true); // 重新绘制提示符
                 }                
                 // 处理音频流
                 if (part.inlineData && part.inlineData.data) {
@@ -229,12 +239,16 @@ socket.onmessage = async (event) => {
                         currentPlayer.stdin.write(audioBuffer, (err) => {
                             if (err) {
                                 // 这里的错误通常是因为进程刚被 kill，保持静默即可
-                                console.log("本次数据碎片写入被拦截（进程已关闭）");
+                                //console.log("本次数据碎片写入被拦截（进程已关闭）");
                             }
                         });
                     }
                 }
             }
+        }
+        if (json.serverContent?.interrupted) {
+            console.log("🛑 中断确认，立即重启播放器丢弃剩余数据");
+            restartPlayer();
         }
         // 继续下一轮对话（server主动发了turnComplete字段）
         if (json.serverContent?.turnComplete) {
@@ -272,8 +286,7 @@ rl.on('line', (line) => { // line就表示回车了
     // 无论是语音还是文本模式，按下回车都执行“打断”
     // --- 打断逻辑 --- 这是Gemini多模AI的强大之处，可以被打断哦
     //player.stdin.end();  这样会让ffplay彻底无法出声（不可逆）
-    currentPlayer.kill();
-    currentPlayer = startPlayer();
+    restartPlayer();
     console.log("🤫 正在思考新问题...");
 
     if (!IS_VOICE_MODE && input) {
@@ -288,6 +301,6 @@ rl.on('line', (line) => { // line就表示回车了
         console.log("🤫 已打断当前播放");
     }
     // 发送完立即显示提示符，允许用户在 AI 说话时继续输入
-    rl.prompt();
+    //rl.prompt();
     } 
 );

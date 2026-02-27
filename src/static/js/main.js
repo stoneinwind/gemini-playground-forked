@@ -31,6 +31,7 @@ const inputAudioVisualizer = document.getElementById('input-audio-visualizer');
 const apiKeyInput = document.getElementById('api-key');
 const apiModelSelect = document.getElementById('model-select');
 const modelSelectContainer = document.querySelector('.settings select#model-select').parentElement;
+const tavilyApiKeyInput = document.getElementById('tavily-api-key');
 const voiceSelect = document.getElementById('voice-select');
 const languageSelect = document.getElementById('language-select');
 const fpsInput = document.getElementById('fps-input');
@@ -48,6 +49,7 @@ const savedLanguage = localStorage.getItem('gemini_language');
 const savedFPS = localStorage.getItem('video_fps');
 const savedSystemInstruction = localStorage.getItem('system_instruction');
 const savedModel = localStorage.getItem('gemini_model');
+const savedTavilyApiKey = localStorage.getItem('tavily_api_key');
 
 // If saved API key exists, automatically fetch models
 if (savedApiKey) {
@@ -56,6 +58,9 @@ if (savedApiKey) {
     setTimeout(() => {
         handleApiKeyChange();
     }, 100);
+}
+if (savedTavilyApiKey) {
+    tavilyApiKeyInput.value = savedTavilyApiKey;
 }
 if (savedVoice) {
     voiceSelect.value = savedVoice;
@@ -106,11 +111,6 @@ let isUsingTool = false;
 // Multimodal Client
 const client = new MultimodalLiveClient();
 
-/**
- * Logs a message to the UI.
- * @param {string} message - The message to log.
- * @param {string} [type='system'] - The type of the message (system, user, ai).
- */
 /**
  * Fetches available models from Gemini API based on the provided API key.
  * @param {string} apiKey - The Gemini API key
@@ -394,6 +394,11 @@ async function connectToWebsocket() {
     localStorage.setItem('gemini_model', apiModelSelect.value);    
     localStorage.setItem('gemini_language', languageSelect.value);
     localStorage.setItem('system_instruction', systemInstructionInput.value);
+    if (tavilyApiKeyInput.value) {
+        localStorage.setItem('tavily_api_key', tavilyApiKeyInput.value);
+    } else {
+        localStorage.removeItem('tavily_api_key');
+    }
 
     const config = {
         model: `models/${apiModelSelect.value}` || CONFIG.API.MODEL_NAME,
