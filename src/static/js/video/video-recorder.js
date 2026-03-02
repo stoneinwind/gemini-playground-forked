@@ -20,20 +20,28 @@ export class VideoRecorder {
         this.previewElement = null;
         this.isRecording = false;
         this.onVideoData = null;
+
+        //离屏处理 Canvas (用于抽帧和像素比对)
         this.frameCanvas = document.createElement('canvas');
-        this.frameCtx = this.frameCanvas.getContext('2d');
+        this.frameCtx = this.frameCanvas.getContext('2d',{ willReadFrequently: true }); // 开启优化通道
+
         this.captureInterval = null;
         this.options = {
             fps: options.fps || 1, // 使用传入的fps,默认为1
             quality: 0.6,
             width: 640,
             height: 480,
-            maxFrameSize: 100 * 1024, // 100KB max per frame
+            maxFrameSize: 500 * 1024, // 500KB max per frame
+            motionThreshold: 10,   // 移动检测阈值（
+            forceFrameInterval: 20, // 每隔 20 帧强制发送（即使没动）
             ...options
         };
         this.frameCount = 0; // Add frame counter for debugging
+        // 根据视频的实际分辨率会动态调整（但保持ratio）
         this.actualWidth = 640;
         this.actualHeight = 480;
+        // 状态追踪（上一帧的数据，用来做move detection）
+        this.lastPixelData = null;
         console.log(this.options);  
     }
 
@@ -80,7 +88,7 @@ export class VideoRecorder {
 
             // Start frame capture loop
             this.isRecording = true;
-            this.startFrameCapture();
+            this.runFrameCaptureLoop();
             
             Logger.info('Video recording started');
 
@@ -98,7 +106,7 @@ export class VideoRecorder {
      * Starts the frame capture loop.
      * @private
      */
-    startFrameCapture() {
+    runFrameCaptureLoop() {
         const frameInterval = 1000 / this.options.fps;
         
         this.captureInterval = setInterval(() => {
@@ -111,24 +119,45 @@ export class VideoRecorder {
                         this.frameCanvas.width,
                         this.frameCanvas.height
                     );
-  
-                    // Convert to JPEG
-                    const jpegData = this.frameCanvas.toDataURL('image/jpeg', this.options.quality);
-                    // Remove data URL prefix
-                    const base64Data = jpegData.split(',')[1];
+
+                    // 获取当前截图数据
+                    const imageData = this.ctx.getImageData(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+                    const currentPixels = imageData.data;
+
+                    // 移动检测逻辑
+                    let shouldSend = false;
+                    if (!this.lastPixelData || (this.frameCount % this.options.forceFrameInterval === 0)) {
+                        shouldSend = true; // 全新数据，或者到了强制发送的轮数
+                    } else {
+                        const motionScore = this.calculateMotion(this.lastPixelData, currentPixels);
+                        if (motionScore >= this.options.motionThreshold) {
+                            shouldSend = true;
+                        }
+                    }
                     
-                    if (!this.validateFrame(base64Data)) {
-                        return;
+                    // 如果需要发送帧数据，再检查和加工并调用回调处理
+                    if (shouldSend) {
+                        // Convert to JPEG
+                        const jpegData = this.frameCanvas.toDataURL('image/jpeg', this.options.quality);
+                        // Remove data URL prefix
+                        const base64Data = jpegData.split(',')[1];                        
+                        if (!this.validateFrame(base64Data)) {
+                            return;
+                        }
+                        // 保存当前的像素数据
+                        this.lastPixelData = currentPixels;
+                        this.frameCount++;
+                        //const size = Math.round(base64Data.length / 1024);
+                        //Logger.debug(`Frame #${this.frameCount} captured (${size}KB)`);
+                        
+                        this.onVideoData(base64Data); // 调用回调
                     }
 
+                    // 保存当前的像素数据
+                    this.lastPixelData = currentPixels;
                     this.frameCount++;
                     //const size = Math.round(base64Data.length / 1024);
                     //Logger.debug(`Frame #${this.frameCount} captured (${size}KB)`);
-                    
-                    if (!base64Data) {
-                        Logger.error('Empty frame data');
-                        return;
-                    }
 
                     this.onVideoData(base64Data);
                 } catch (error) {
@@ -209,7 +238,11 @@ export class VideoRecorder {
             Logger.error('Frame too small');
             return false;
         }
-        
+
+        if (base64Data.length >= this.options.maxFrameSize){
+            Logger.warn('Frame size exceeds max allowed size');
+            return false; // 更好的处理是调用OptimizeFrameQuality方法来降低分辨率
+        }         
         return true;
     }
 
@@ -231,5 +264,19 @@ export class VideoRecorder {
         }
         
         return base64Data;
+    }
+
+    /**
+     * 像素级移动检测 (算法优化)，返回两套图像数据的像素（抽样）差异比值（0表示不变，5-15微小变化，30-100明显变化，>200剧烈变化）
+     */
+    calculateMotion(prev, curr) {
+        let diff = 0;
+        const step = 8; // 抽样步长，减少计算量
+        for (let i = 0; i < prev.length; i += 4 * step) { // 因为原始数据是RGBA表示一个像素，所以每次跳过4个字节
+            diff += Math.abs(prev[i] - curr[i]) + 
+                    Math.abs(prev[i + 1] - curr[i + 1]) + 
+                    Math.abs(prev[i + 2] - curr[i + 2]);
+        }
+        return diff / (prev.length / step);
     }
 } 
