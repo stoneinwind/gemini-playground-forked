@@ -3,7 +3,7 @@ import { AudioStreamer } from './audio/audio-streamer.js';
 import { AudioRecorder } from './audio/audio-recorder.js';
 import { CONFIG } from './config/config.js';
 import { Logger } from './utils/logger.js';
-import { VideoManager } from './video/video-manager.js';
+import { VideoRecorder } from './video/video-recorder.js';
 import { ScreenRecorder } from './video/screen-recorder.js';
 import { languages } from './language-selector.js';
 
@@ -103,7 +103,7 @@ let audioCtx = null;
 let isConnected = false;
 let audioRecorder = null;
 let isVideoActive = false;
-let videoManager = null;
+let videoRecorder = null;
 let isScreenSharing = false;
 let screenRecorder = null;
 let isUsingTool = false;
@@ -473,7 +473,7 @@ function disconnectFromWebsocket() {
     screenButton.disabled = true;
     logMessage('Disconnected from server', 'system');
     
-    if (videoManager) {
+    if (videoRecorder) {
         stopVideo();
     }
     
@@ -602,11 +602,11 @@ async function handleVideoToggle() {
     if (!isVideoActive) {
         try {
             Logger.info('Attempting to start video');
-            if (!videoManager) {
-                videoManager = new VideoManager();
+            if (!videoRecorder) {
+                videoRecorder = new VideoRecorder();
             }
             
-            await videoManager.start(fpsInput.value,(frameData) => {
+            await videoRecorder.start(fpsInput.value,"user", (frameData) => {
                 if (isConnected) {
                     client.sendRealtimeInput([frameData]);
                 }
@@ -622,7 +622,7 @@ async function handleVideoToggle() {
             Logger.error('Camera error:', error);
             logMessage(`Error: ${error.message}`, 'system');
             isVideoActive = false;
-            videoManager = null;
+            videoRecorder = null;
             cameraIcon.textContent = 'videocam';
             cameraButton.classList.remove('active');
         }
@@ -636,9 +636,9 @@ async function handleVideoToggle() {
  * Stops the video streaming.
  */
 function stopVideo() {
-    if (videoManager) {
-        videoManager.stop();
-        videoManager = null;
+    if (videoRecorder) {
+        videoRecorder.stop();
+        videoRecorder = null;
     }
     isVideoActive = false;
     cameraIcon.textContent = 'videocam';

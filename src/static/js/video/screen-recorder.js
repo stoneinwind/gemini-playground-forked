@@ -24,7 +24,7 @@ export class ScreenRecorder {
         this.captureInterval = null;
         this.previewElement = null;
         this.options = {
-            fps: 2, // Lower FPS for screen sharing
+            fps: 1, // Lower FPS for screen sharing
             quality: 0.8,
             width: 1280,
             height: 720,
@@ -72,6 +72,7 @@ export class ScreenRecorder {
                 // Set canvas size based on video dimensions
                 this.frameCanvas.width = this.previewElement.videoWidth;
                 this.frameCanvas.height = this.previewElement.videoHeight;
+                Logger.info(`Screen preview set up with dimensions ${this.frameCanvas.width}x${this.frameCanvas.height}`);
             }
 
             // Start frame capture loop

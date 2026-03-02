@@ -197,6 +197,7 @@ export class VideoRecorder {
      * @private
      */
     validateFrame(base64Data) {
+        if (!base64Data) { Logger.error('Empty frame data'); return false; } 
         // Check if it's a valid base64 string
         if (!/^[A-Za-z0-9+/=]+$/.test(base64Data)) {
             Logger.error('Invalid base64 data');
