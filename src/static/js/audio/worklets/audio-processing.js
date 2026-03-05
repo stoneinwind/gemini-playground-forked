@@ -58,10 +58,6 @@ class AudioProcessingWorklet extends AudioWorkletProcessor {
                     this.sendAndClearBuffer();
                 }
             }
-
-            if (this.bufferWriteIndex >= this.buffer.length) {
-                this.sendAndClearBuffer();
-            }
         } catch (error) {
             this.port.postMessage({
                 event: 'error',

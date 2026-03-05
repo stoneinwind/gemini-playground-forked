@@ -158,7 +158,7 @@ export class ScreenRecorder {
                             // 保存当前的像素数据
                             this.lastPixelData = currentPixels;
                             this.frameCount++;
-                            Logger.debug(`Screen frame #${this.frameCount} captured`);
+                            //Logger.debug(`Screen frame #${this.frameCount} captured`);
                             this.onScreenData(base64Data);
                         }                        
                     }                   

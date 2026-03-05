@@ -89,6 +89,14 @@ export class AudioRecorder {
                 this.stream.getTracks().forEach(track => track.stop());
                 this.stream = null;
             }
+            if(this.audioContext) {
+                this.audioContext.close();
+                this.audioContext = null;
+            }
+            if(this.source) {
+                this.source.disconnect();
+                this.source = null;
+            }
 
             this.isRecording = false;
             Logger.info('Audio recording stopped successfully');

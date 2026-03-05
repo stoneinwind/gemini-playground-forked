@@ -11,9 +11,9 @@ class VUMeterProcessor extends AudioWorkletProcessor {
     constructor() {
         super();
         this._volume = 0;
-        this._updateIntervalInMS = 25;
-        this._nextUpdateFrame = this._updateIntervalInMS;
+        this._updateIntervalInMS = 25;        
         this._updateIntervalInFrames = this._updateIntervalInMS / 1000 * sampleRate;
+        this._nextUpdateFrame = this._updateIntervalInFrames;
     }
 
     /**
