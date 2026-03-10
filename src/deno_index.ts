@@ -84,9 +84,12 @@ async function handleAPIRequest(req: Request): Promise<Response> {
   }
 }
 
+import { apiRoutes } from "./apis/apis.ts";   // ← 引入
+
 async function handleRequest(req: Request): Promise<Response> {
+  const { method } = req; // 调用方法（GET/POST/OPTION等）
   const url = new URL(req.url);
-  console.log('Request URL:', req.url);
+  console.info('Request URL:', req.url, " and request type:", method);
 
   // WebSocket 处理
   if (req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
@@ -99,18 +102,47 @@ async function handleRequest(req: Request): Promise<Response> {
     return handleAPIRequest(req);
   }
 
-  // 静态文件处理
+  if (req.method === "OPTIONS") { // 前后端如果不在同域，需要204，否则CORS错误
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }
+
+  // ─────────────── 新增：自定义 API 路由 ───────────────
+  if (url.pathname.startsWith("/api/")) {   // 或严格等于 url.pathname
+    const handler = apiRoutes?.[url.pathname];   // 加 ? 可选链，防止崩溃
+    if (req.method !== "POST" && req.method !== "GET") {
+     return new Response("Method Not Allowed", { status: 405 });
+    }
+    if (handler) {
+      try {
+        return await handler(req, url);
+      } catch (err) {
+        console.error("API handler failed:", err);
+        return Response.json({ error: "Internal error" }, { status: 500 });
+      }
+    }
+
+    return Response.json({ error: "API endpoint not found" }, { status: 404 });
+  }
+
+  // 静态文件处理，这里只允许GET请求
+  if (req.method !== "GET") {
+    return new Response("Method Not Allowed", { status: 405 });
+  }
   try {
     let filePath = url.pathname;
     if (filePath === '/' || filePath === '/index.html') {
       filePath = '/index.html';
     }
-
     const fullPath = `${Deno.cwd()}/src/static${filePath}`;
-
     const file = await Deno.readFile(fullPath);
     const contentType = getContentType(filePath);
-
     return new Response(file, {
       headers: {
         'content-type': `${contentType};charset=UTF-8`,
@@ -127,4 +159,5 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 }
 
+//Deno.serve(handleRequest, { port: 3008 }); 
 Deno.serve(handleRequest); 
